@@ -7,6 +7,8 @@ import secrets
 import time
 from blake3 import blake3
 
+a = None
+
 ##TODO: Everything up here ought to be managed by a database. That's someone else's job, in my opinion.
 
 companies = ["GOOGL", "XOM", "TSLA", "T","KO","TWTR", "PYPL", "INTC"]
@@ -26,7 +28,7 @@ users = {'joe9go':[b'\x86\x04e\xc8\xdbt\xdf\xe31|#\xee\xb1o\n\xf4', b'h\xc1!z\x8
          'dario606':[],
          }
 
-tokens = []
+tokens = {}
 
 ##End of database TODO.
 
@@ -67,66 +69,38 @@ class RequestHandler(BaseHTTPRequestHandler):
     def _set_headers(self):
         self.send_response(HTTPStatus.OK.value)
         self.send_header('Content-type', 'application/json')
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin','*')
         self.end_headers()
-        
+
+    def _send_cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "request,Content-Type")
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self._send_cors_headers()
+        self.end_headers()
+    
     def do_GET(self):
         length = int(self.headers.get('content-length'))
-        get_type = self.headers.get('request')
-        message = json.loads(self.rfile.read(length))
-        msg = json.loads(message)
-        print('GET', msg)
-        try:
-            
-            if get_type == 'history':
-                
-                comp = msg["company"]
-                start = msg["start"]
-                end = msg["end"]
-                if comp in tickers:
-                    hist = tickers[comp].history(start=start, end=end)
-                    dates = [str(x) for x in hist.index.to_numpy()]
-                    opens = list(hist["Open"].to_numpy())
-                    self._set_headers()
-                    self.wfile.write(json.dumps({"dates":dates,"opens":opens}).encode('utf-8'))
-                    
-            elif get_type == 'predictions':
-                
-                user_token = msg["user_token"]
-                user = tokens[user_token].get_user()
-
-                if msg["user"] != user:
-                    raise AuthError
-
-                if user == None:
-                    raise TimeoutError
-                
-                predictions = predictions_user[user]
-                dates = [x.date for x in predictions]
-                values = [x.value for x in predictions]
-                
-                self._set_headers()
-                self.wfile.write(json.dumps({"dates":dates,"values":values}).encode('utf-8'))
-                
-            else:
-                raise ValueError
-
-        except TimeoutError:
-            self.send_response(HTTPStatus.BAD_REQUEST.value)
-            self.end_headers()
-            self.wfile.write(b'client token expired')
-            
-        except Exception:
-            self.send_response(HTTPStatus.BAD_REQUEST.value)
-            self.end_headers()
-            self.wfile.write(b'')
-            
+        print('GET')
+        
     def do_POST(self):
+
+        global a
+        
         length = int(self.headers.get('content-length'))
-        post_type = self.headers.get('request')
-        message = json.loads(self.rfile.read(length))
-        msg = json.loads(message)
+        
+        a = self.rfile.read(length)
+        message = json.loads(a)
+        try:
+            msg = json.loads(message)
+        except:
+            msg = message
         print('POST', msg)
+        
+        post_type = self.headers.get('request')
 
         try:
             out = b''
@@ -140,8 +114,10 @@ class RequestHandler(BaseHTTPRequestHandler):
                     token = Token(username)
                     tokens[token.value] = token
                     out = json.dumps({"token":token.value}).encode('utf-8')
+                else:
+                    raise AuthError
 
-            elif post_tpye == "register":
+            elif post_type == "register":
 
                 username = msg["username"]
                 password = msg["password"]
@@ -180,27 +156,64 @@ class RequestHandler(BaseHTTPRequestHandler):
                     predictions_user[user].append(prediction)
                 else:
                     predictions_user[user] = [prediction]
+
+                out = b'accepted prediction'
+            
+            elif post_type == 'history':
+                
+                comp = msg["company"]
+                start = msg["start"]
+                end = msg["end"]
+                if comp in tickers:
+                    hist = tickers[comp].history(start=start, end=end)
+                    dates = [str(x) for x in hist.index.to_numpy()]
+                    opens = list(hist["Open"].to_numpy())
+                    
+                    out = json.dumps({"dates":dates,"opens":opens}).encode('utf-8')
+                    
+            elif post_type == 'predictions':
+                
+##                user_token = msg["user_token"]
+##                user = tokens[user_token].get_user()
+##
+##                if msg["user"] != user:
+##                    raise AuthError
+
+##                if user == None:
+##                    raise TimeoutError
+
+                msg["user"]
+                
+                predictions = predictions_user[user]
+                dates = [x.date for x in predictions]
+                values = [x.value for x in predictions]
+                
+                out = json.dumps({"dates":dates,"values":values}).encode('utf-8')
+            
             else:
                 raise ValueError
+            
             self._set_headers()
             self.wfile.write(out)
 
         except TimeoutError:
             self.send_response(HTTPStatus.BAD_REQUEST.value)
+            self.send_header('Access-Control-Allow-Origin','*')
             self.end_headers()
             self.wfile.write(b'client token expired')
 
             
         except AuthError:
             self.send_response(HTTPStatus.BAD_REQUEST.value)
+            self.send_header('Access-Control-Allow-Origin','*')
             self.end_headers()
             self.wfile.write(b'client token invalid')
             
         except Exception:
             self.send_response(HTTPStatus.BAD_REQUEST.value)
+            self.send_header('Access-Control-Allow-Origin','*')
             self.end_headers()
             self.wfile.write(b'')
-            
         
 port = 9876
 server = HTTPServer(('', port), RequestHandler)
@@ -215,7 +228,9 @@ def runServer():
     server.server_close()
 
 def clear_tokens():
+    pass
 
 def collect_scores():
+    pass
 
-runner = Thread(target = runServer)
+runServer()
