@@ -11,7 +11,12 @@
         <div class="login-text"> Login </div>
         <input class="field" id="username" placeholder="Username" required>
         <input class="field" id="password" type="password" placeholder="Password" required>
+        {% if passowrd.length > 0 %}{
         <button id="login-button"> Login </button>
+        }
+        else if (passowrd.length > 0){
+        <button id="login-button1"> Login </button>
+        }
         <div class="signup-link">
             Not a member? <a href="register.html">Signup now</a>
         </div>
