@@ -32,7 +32,11 @@ async function submit(data){
     {'method':'POST',"headers":{'request':'login'},
     "body":data})
     .then(response => response.json())
-    .then(data => console.log(data)).catch(()=>{
-        console.log("unable to login")
-    })
+    .then(data => {document.cookie = "token="+data.token})
 }
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
