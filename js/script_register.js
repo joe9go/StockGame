@@ -30,7 +30,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
 async function submit(data){
     const response = await fetch(url,
     {'method':'POST',"headers":{'request':'register'},
-    "body":data});
-    const json = await JSON.stringify(response.json());
-    console.log(json)
+    "body":data})
+    .then(response => response.json())
+    .then(data => console.log(data)).catch(()=>{
+        console.log("unable to register")
+    })
 }

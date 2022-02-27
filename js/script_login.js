@@ -28,7 +28,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 async function submit(data){
-    txt = await fetch('http://724a-2607-b400-a4-2e30-51b1-3362-821b-7dfd.ngrok.io',
+    await fetch(url,
     {'method':'POST',"headers":{'request':'login'},
-    "body":data});
+    "body":data})
+    .then(response => response.json())
+    .then(data => console.log(data)).catch(()=>{
+        console.log("unable to login")
+    })
 }
