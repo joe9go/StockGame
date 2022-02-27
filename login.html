@@ -4,14 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title> Login </title>
+    <link rel="icon" href="images/favicon.png">
     <link rel="stylesheet" href="css/style_login.css">
 </head>
 <body>
+    <style>
+        body{
+            background-image: url('images/background.jpg');
+            background-size: cover;
+        }
+    </style>
     <div class="login">
         <div class="login-text"> Login </div>
         <input class="field" id="username" placeholder="Username" required>
         <input class="field" id="password" type="password" placeholder="Password" required>
-        <button id="login-button"> Login </button>
+
+        <form method="POST" action="index.html">
+        <button id="login-button" class="buttonStyle"> Login  </button>
+        </form>
+
         <div class="signup-link">
             Not a member? <a href="register.html">Signup now</a>
         </div>

@@ -3,15 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Login </title>
+
+    <link rel="icon" href="images/favicon.png">
+    <title> Register </title>
     <link rel="stylesheet" href="css/style_register.css">
 </head>
 <body>
+    <style>
+        body{
+            background-image: url('images/background.jpg');
+            background-size: cover;
+        }
+    </style>
+
     <div class="login">
         <div class="register-text"> Signup </div>
         <input class="field" id="username" placeholder="Username" required>
         <input class="field" id="password" type="password" placeholder="Password" required>
-        <button id="login-button"> Sign Up </button>
+        <form method="POST" action="login.html">
+        <button id="login-button" class="buttonStyle"> Sign Up </button>
+        </form>
+
         <div class="signup-link">
             Registered? <a href="login.html"> Login </a>
         </div>

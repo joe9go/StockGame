@@ -45,11 +45,14 @@ body {
   width: 300px;
   border-radius: 15px;
   border: none;
-  color: green;
+  color: black;
   height:50px;
   font-family: 'PT Serif', serif;
 }
-
+.buttonStyle:hover{
+  background: #383;
+  transparency: 85%;
+}
 .signup-link {
   font-size: 30px;
   font-family: 'PT Serif', serif;
