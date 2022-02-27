@@ -5,28 +5,30 @@ import json
 import yfinance as yf
 import secrets
 import time
+import pickle
 from blake3 import blake3
-
-a = None
 
 ##TODO: Everything up here ought to be managed by a database. That's someone else's job, in my opinion.
 
-companies = ["GOOGL", "XOM", "TSLA", "T","KO","TWTR", "PYPL", "INTC"]
-
+with open("Data/company_list.json","r") as file:
+    companies = json.load(file)['Stocks']
+    
 tickers = {}
 for i in companies:
     tickers[i] = yf.Ticker(i)
+    
+with open("Data/predictions.dat","rb") as file:
+    preds = pickle.load(file)
+    predictions_date = preds['Date']
+    predictions_user = preds['User']
 
-predictions_date = {}
-predictions_user = {}
-
-user_scores = {}
+with open("Data/scores.json","r") as file:
+    user_scores = json.load(file)["Scores"]
 
 #users are stored as username: salt, pass, token
 
-users = {'joe9go':[b'\x86\x04e\xc8\xdbt\xdf\xe31|#\xee\xb1o\n\xf4', b'h\xc1!z\x80\xea\x8a\x17\xd7\xe1-\x98|\x0b\xad7\x1f\x93 \xab\x9b\xe2F\xf0&\xb2\x14v\xc2\x8e\xc72'],
-         'dario606':[],
-         }
+with open("Data/users.json","r") as file:
+    users = json.load(file)["Users"]
 
 tokens = {}
 
@@ -59,6 +61,7 @@ class Token:
     def get_user(self):
         if self.is_expired():
             return None
+        extend_token()
         return user
 
 class AuthError(Exception):
@@ -74,8 +77,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def _send_cors_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "request,Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "*")
+        self.send_header("Access-Control-Allow-Headers", "*")
 
     def do_OPTIONS(self):
         self.send_response(200)
@@ -109,8 +112,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 username = msg["username"]
                 password = msg["password"]
 
-                hashed = blake3(users[username][0]+password.encode()).digest()
-                if hashed == users[username][1]:
+                hashed = blake3(users[username][0].to_bytes(16,'big')+password.encode()).digest()
+                if hashed == users[username][1].to_bytes(32,'big'):
                     token = Token(username)
                     tokens[token.value] = token
                     out = json.dumps({"token":token.value}).encode('utf-8')
@@ -127,7 +130,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     
                 else:
                     users[username][0] = secrets.randbits(128).to_bytes(16,'big')
-                    users[username][1] = blake3(users[username][0]+password.encode()).digest()
+                    users[username][1] = int.from_bytes(blake3(users[username][0]+password.encode()).digest(),'big')
                     
                     token = Token(username)
                     tokens[token.value] = token
@@ -182,7 +185,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 ##                if user == None:
 ##                    raise TimeoutError
 
-                msg["user"]
+                user = msg["user"]
                 
                 predictions = predictions_user[user]
                 dates = [x.date for x in predictions]
@@ -228,9 +231,39 @@ def runServer():
     server.server_close()
 
 def clear_tokens():
-    pass
+    
+    for i in list(tokens.keys()):
+        if tokens[i].is_expired:
+            tokens.pop(i)
+        
 
 def collect_scores():
-    pass
+    for p in prediction_date[time.strftime("%Y-%m-%d")]:
+        start = yfinance.history(p.company)
+        hist = list(p.company.history(start=p.start, end=p.start)["Open"]).to_numpy[0]
+        now = list(p.company.history(start=p.end, end=p.end)["Open"]).to_numpy[0]
+        user_scores[p.user] += ((p.value-hist)/hist-(now-hist)/hist)/((now-hist)/hist)
+
+def autosave():
+    while True:
+        time.sleep(1800)
+            
+        with open("Data/predictions.dat","wb") as file:
+            pickle.dump({"Date":predictions_date,"User":{}},predictions_user)
+        
+        with open("Data/scores.json","w+") as file:
+            data = {"Scores":user_scores}
+            json.dump(data,file)
+        
+        with open("Data/users.json","w+") as file:
+            data = {"Users":users}
+            json.dump(data,file)
+
+tokenMan = Thread(target = clear_tokens, daemon=True)
+saveMan = Thread(target = autosave, daemon=True)
+
+tokenMan.start()
+saveMan.start()
 
 runServer()
+autosave()
