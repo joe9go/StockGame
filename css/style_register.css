@@ -13,7 +13,7 @@ body {
   height: 100%;
 }
 
-.login-text {
+.register-text {
   font-size: 50px;
   font-family: 'PT Serif', serif;
 }
@@ -45,14 +45,15 @@ body {
   width: 300px;
   border-radius: 15px;
   border: none;
-  color: black;
   height:50px;
   font-family: 'PT Serif', serif;
 }
 .buttonStyle:hover{
-  background: #383;
-  transparency: 85%;
+  color: white;
+  background: #0047AB;
+  filter: brightness(85%);
 }
+
 .signup-link {
   font-size: 30px;
   font-family: 'PT Serif', serif;
