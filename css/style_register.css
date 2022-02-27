@@ -48,11 +48,13 @@ body {
   height:50px;
   font-family: 'PT Serif', serif;
 }
+
 .buttonStyle:hover{
   color: white;
   background: #0047AB;
   filter: brightness(85%);
 }
+
 
 .signup-link {
   font-size: 30px;

@@ -1,12 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="css\style.css">
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="X-UA-Compatible" content="width=device-width, initial-scale=1.0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Leaderboard</title>
 </head>
 <body>
-    <h1> This is the board page </h1>
+    <style>
+        body{
+            background-image: url('images/background.jpg');
+            background-size: cover;
+        }
+    </style>    
+    <div class="header">
+        <div id="logo-text">
+            <a href="index.html">
+                <img
+                src="images/Logo.svg"
+                alt="Site Logo"
+                width="100px"
+                height="auto"
+                />
+            </a>
+            <a href="index.html">
+                <h1> Stock Guess </h2>
+            </a>
+        </div>
+        <div id="menu">
+            <a href="index.html">Home</a>
+            <a href="about.html">About</a>
+        </div>
+    </div>
+    <script src="js/script_leaderboard.js"></script>
+    <table id="leaderboard", class="board">
+        <tr>
+            <th>User</th>
+            <th>Average Score (0-100)</th>
+        </tr>
+    </table>
 </body>
 </html>

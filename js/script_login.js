@@ -10,6 +10,8 @@ const login = (event)=>{
     }
     userinformation.push(userinfo);
 
+    document.cookie = "username="+userinfo.username
+
     // reset entry values
     document.getElementById('username').value = "";
     document.getElementById('password').value = "";
@@ -32,11 +34,6 @@ async function submit(data){
     {'method':'POST',"headers":{'request':'login'},
     "body":data})
     .then(response => response.json())
-    .then(data => {document.cookie = "token="+data.token})
+    .then(data => {document.cookie = "token="+data.token; document.location.assign("index.html")})
 }
 
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-  }
