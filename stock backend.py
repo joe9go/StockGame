@@ -174,7 +174,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     
                 board.sort(key=lambda x: x[1])
                 
-                out = json.dumps({"best average scores":board[0:10]}).encode('utf-8')
+                out = json.dumps({"scores":board[0:10]}).encode('utf-8')
             
             else:
                 raise ValueError
@@ -275,6 +275,11 @@ def autosave():
             json.dump(data,file)
         print("saved")
 
+def keepscore():
+    while True:
+        time.sleep(3600*24)
+        collect_scores()
+
 
 ##TODO: Everything up here ought to be managed by a database. That's someone else's job, in my opinion.
 
@@ -304,8 +309,10 @@ tokens = {}
 
 tokenMan = Thread(target = clear_tokens, daemon=True)
 saveMan = Thread(target = autosave, daemon=True)
+scoreMan = Thread(target = keepscore, daemon=True)
 servMan = Thread(target = runServer)
 
 tokenMan.start()
 saveMan.start()
+scoreMan.start()
 servMan.start()
