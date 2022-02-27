@@ -41,7 +41,7 @@ class Prediction:
         self.date = date
         self.value = value
         self.user = user
-        self.start = time.time()
+        self.start = time.strftime("%Y-%m-%d")
 
 class Token:
 
@@ -108,9 +108,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         try:
             out = b''
             if post_type == "login":
-                
+
                 username = msg["username"]
                 password = msg["password"]
+
+                print("User With Username:",username,"Attempted Login")
 
                 hashed = blake3(users[username][0].to_bytes(16,'big')+password.encode()).digest()
                 if hashed == users[username][1].to_bytes(32,'big'):
@@ -125,12 +127,15 @@ class RequestHandler(BaseHTTPRequestHandler):
                 username = msg["username"]
                 password = msg["password"]
 
+                print("New User Registered With Username:",username)
+
                 if username in users:
                     out = b'username taken'
                     
                 else:
-                    users[username][0] = secrets.randbits(128).to_bytes(16,'big')
-                    users[username][1] = int.from_bytes(blake3(users[username][0]+password.encode()).digest(),'big')
+                    users[username] = [None, None]
+                    users[username][0] = int(secrets.randbits(128))
+                    users[username][1] = int.from_bytes(blake3(users[username][0].to_bytes(16,'big')+password.encode()).digest(),'big')
                     
                     token = Token(username)
                     tokens[token.value] = token
@@ -175,15 +180,6 @@ class RequestHandler(BaseHTTPRequestHandler):
                     out = json.dumps({"dates":dates,"opens":opens}).encode('utf-8')
                     
             elif post_type == 'predictions':
-                
-##                user_token = msg["user_token"]
-##                user = tokens[user_token].get_user()
-##
-##                if msg["user"] != user:
-##                    raise AuthError
-
-##                if user == None:
-##                    raise TimeoutError
 
                 user = msg["user"]
                 
@@ -192,6 +188,19 @@ class RequestHandler(BaseHTTPRequestHandler):
                 values = [x.value for x in predictions]
                 
                 out = json.dumps({"dates":dates,"values":values}).encode('utf-8')
+
+            elif post_type == 'leaderboard':
+                
+                board = []
+                
+                for username in users:
+                    if username in user_scores:
+                        score = user_scores[username]/len(predictions_user[username])
+                        board.append((username, score))
+                    
+                board.sort(key=lambda x: x[1])
+                
+                out = json.dumps({"best average scores":board[0:10]}).encode('utf-8')
             
             else:
                 raise ValueError
@@ -236,20 +245,41 @@ def clear_tokens():
         if tokens[i].is_expired:
             tokens.pop(i)
         
-
 def collect_scores():
-    for p in prediction_date[time.strftime("%Y-%m-%d")]:
-        start = yfinance.history(p.company)
-        hist = list(p.company.history(start=p.start, end=p.start)["Open"]).to_numpy[0]
-        now = list(p.company.history(start=p.end, end=p.end)["Open"]).to_numpy[0]
-        user_scores[p.user] += ((p.value-hist)/hist-(now-hist)/hist)/((now-hist)/hist)
+    if time.strftime("%Y-%m-%d") in predictions_date:
+        curTime = time.strftime("%Y-%m-%d")
+        for p in predictions_date[curTime]:
+            ticker = tickers(p.company)
+            start_value = list(t.history(start=p.start, end=p.start)["Open"]).to_numpy[0]
+            now_value = list(p.company.history(start=curTime, end=curTime)["Open"]).to_numpy[0]
+            
+            pctOff = (p.value-start_value)/start_value-(now_value-start_value)/start_value
+
+            score = (-10*abs(pctOff)**0.5 + 100)/(25*pctOff**2+1)
+            
+            user_scores[p.user] += score
+
+def arti_collect_scores(date):
+    if date in predictions_date:
+        curTime = date
+        for p in predictions_date[curTime]:
+            ticker = tickers(p.company)
+            start_value = list(t.history(start=p.start, end=p.start)["Open"]).to_numpy[0]
+            now_value = list(p.company.history(start=curTime, end=curTime)["Open"]).to_numpy[0]
+            
+            pctOff = (p.value-start_value)/start_value-(now_value-start_value)/start_value
+
+            score = (-10*abs(pctOff)**0.5 + 100)/(25*pctOff**2+1)
+            
+            user_scores[p.user] += score
 
 def autosave():
     while True:
-        time.sleep(1800)
+        time.sleep(120)
+        print("saved")
             
         with open("Data/predictions.dat","wb") as file:
-            pickle.dump({"Date":predictions_date,"User":{}},predictions_user)
+            pickle.dump({"Date":predictions_date,"User":predictions_user},file)
         
         with open("Data/scores.json","w+") as file:
             data = {"Scores":user_scores}
@@ -261,9 +291,8 @@ def autosave():
 
 tokenMan = Thread(target = clear_tokens, daemon=True)
 saveMan = Thread(target = autosave, daemon=True)
+servMan = Thread(target = runServer)
 
 tokenMan.start()
 saveMan.start()
-
-runServer()
-autosave()
+servMan.start()
