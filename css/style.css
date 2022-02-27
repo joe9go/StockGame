@@ -112,3 +112,14 @@
     background-color: rgb(207, 207, 207);
     cursor: pointer;
 }
+
+#footer-row1{
+    position: fixed;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+    width: 100%;
+    background-color: saddlebrown;
+    color: white;
+    text-align: center;
+}
