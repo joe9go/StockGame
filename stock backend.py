@@ -5,34 +5,9 @@ import json
 import yfinance as yf
 import secrets
 import time
+from datetime import datetime, timedelta
 import pickle
 from blake3 import blake3
-
-##TODO: Everything up here ought to be managed by a database. That's someone else's job, in my opinion.
-
-with open("Data/company_list.json","r") as file:
-    companies = json.load(file)['Stocks']
-    
-tickers = {}
-for i in companies:
-    tickers[i] = yf.Ticker(i)
-    
-with open("Data/predictions.dat","rb") as file:
-    preds = pickle.load(file)
-    predictions_date = preds['Date']
-    predictions_user = preds['User']
-
-with open("Data/scores.json","r") as file:
-    user_scores = json.load(file)["Scores"]
-
-#users are stored as username: salt, pass, token
-
-with open("Data/users.json","r") as file:
-    users = json.load(file)["Users"]
-
-tokens = {}
-
-##End of database TODO.
 
 class Prediction:
     
@@ -52,17 +27,17 @@ class Token:
         self.expiry = expiry
 
     def is_expired(self):
-        return (time.time() - self.start - self.expiry) < 0
+        return (time.time() - self.start) > self.expiry
 
     def extend_token(self):
-        if (time.time() - self.start - self.expiry) < (self.expiry/2):
+        if (time.time() - self.start - self.expiry) > (self.expiry/2):
             self.start = time.time()
 
     def get_user(self):
         if self.is_expired():
             return None
-        extend_token()
-        return user
+        self.extend_token()
+        return self.user
 
 class AuthError(Exception):
     pass
@@ -90,12 +65,10 @@ class RequestHandler(BaseHTTPRequestHandler):
         print('GET')
         
     def do_POST(self):
-
-        global a
         
         length = int(self.headers.get('content-length'))
-        
         a = self.rfile.read(length)
+        print(a)
         message = json.loads(a)
         try:
             msg = json.loads(message)
@@ -118,7 +91,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 if hashed == users[username][1].to_bytes(32,'big'):
                     token = Token(username)
                     tokens[token.value] = token
-                    out = json.dumps({"token":token.value}).encode('utf-8')
+                    out = json.dumps({"token":str(token.value)}).encode('utf-8')
                 else:
                     raise AuthError
 
@@ -139,19 +112,19 @@ class RequestHandler(BaseHTTPRequestHandler):
                     
                     token = Token(username)
                     tokens[token.value] = token
-                    out = json.dumps({"token":token.value}).encode('utf-8')
+                    out = json.dumps({"token":str(token.value)}).encode('utf-8')
                 
                 
             elif post_type == "prediction":
                 comp = msg["company"]
                 date = msg["date"]
-                value = msg["value"]
-                user_token = msg["user_token"]
+                value = int(msg["value"])
+                user_token = int(msg["user_token"])
                 user = tokens[user_token].get_user()
 
                 if msg["user"] != user:
                     raise AuthError
-
+                
                 if user == None:
                     raise TimeoutError
                 
@@ -192,7 +165,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             elif post_type == 'leaderboard':
                 
                 board = []
-                
                 for username in users:
                     if username in user_scores:
                         score = user_scores[username]/len(predictions_user[username])
@@ -250,33 +222,44 @@ def collect_scores():
         curTime = time.strftime("%Y-%m-%d")
         for p in predictions_date[curTime]:
             ticker = tickers(p.company)
-            start_value = list(t.history(start=p.start, end=p.start)["Open"]).to_numpy[0]
-            now_value = list(p.company.history(start=curTime, end=curTime)["Open"]).to_numpy[0]
+            start_value = ticker.history(start=0, end=date_incr(p.start))["Open"].to_numpy()[0]
+            now_value = ticker.history(start=curTime, end=date_incr(curTime))["Open"].to_numpy()[0]
             
             pctOff = (p.value-start_value)/start_value-(now_value-start_value)/start_value
 
             score = (-10*abs(pctOff)**0.5 + 100)/(25*pctOff**2+1)
             
-            user_scores[p.user] += score
+            if p.user in user_scores:
+                user_scores[p.user] += score
 
-def arti_collect_scores(date):
+            user_scores[p.user] = score
+
+def date_incr(date):
+    return (datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+
+def arti_collect_scores(date, start=None):
     if date in predictions_date:
         curTime = date
         for p in predictions_date[curTime]:
-            ticker = tickers(p.company)
-            start_value = list(t.history(start=p.start, end=p.start)["Open"]).to_numpy[0]
-            now_value = list(p.company.history(start=curTime, end=curTime)["Open"]).to_numpy[0]
+            ticker = tickers[p.company]
+            
+            start_value = ticker.history(start=0, end=date_incr(p.start))["Open"].to_numpy()[0]
+            
+            now_value = ticker.history(start=curTime, end=date_incr(curTime))["Open"].to_numpy()[0]
             
             pctOff = (p.value-start_value)/start_value-(now_value-start_value)/start_value
 
             score = (-10*abs(pctOff)**0.5 + 100)/(25*pctOff**2+1)
-            
-            user_scores[p.user] += score
+
+            if p.user in user_scores:
+                user_scores[p.user] += score
+
+            user_scores[p.user] = score
 
 def autosave():
     while True:
-        time.sleep(120)
-        print("saved")
+        time.sleep(300)
+        print("saving")
             
         with open("Data/predictions.dat","wb") as file:
             pickle.dump({"Date":predictions_date,"User":predictions_user},file)
@@ -288,6 +271,34 @@ def autosave():
         with open("Data/users.json","w+") as file:
             data = {"Users":users}
             json.dump(data,file)
+        print("saved")
+
+
+##TODO: Everything up here ought to be managed by a database. That's someone else's job, in my opinion.
+
+with open("Data/company_list.json","r") as file:
+    companies = json.load(file)['Stocks']
+    
+tickers = {}
+for i in companies:
+    tickers[i] = yf.Ticker(i)
+    
+with open("Data/predictions.dat","rb") as file:
+    preds = pickle.load(file)
+    predictions_date = preds['Date']
+    predictions_user = preds['User']
+
+with open("Data/scores.json","r") as file:
+    user_scores = json.load(file)["Scores"]
+
+#users are stored as username: salt, pass, token
+
+with open("Data/users.json","r") as file:
+    users = json.load(file)["Users"]
+
+tokens = {}
+
+##End of database TODO.
 
 tokenMan = Thread(target = clear_tokens, daemon=True)
 saveMan = Thread(target = autosave, daemon=True)
