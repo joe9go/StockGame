@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=PT+Serif&display=swap');
+
+.header {
+    background: rgb(39, 39, 39);
+    display: flex;
+    flex-direction: row;
+    min-height: 120px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#logo-text {
+    display: flex;
+    flex-direction: row;
+    margin: 15px;
+}
+
+#logo-text a {
+    margin-right: 0px;
+    text-decoration: none;
+}
+
+.header h1 {
+    font-size: 45px;
+    color: white;
+    margin: 20px;
+    font-family: 'PT Serif', serif;
+}
+
+#menu {
+    margin-right: 50px;
+}
+
+#menu a:hover {
+    background-color: rgb(204, 82, 0);
+}
+
+.header a {
+    font-size: 25px;
+    color: white;
+    font-family: 'PT Serif', serif;
+    margin-right: 30px;
+}
+
+.container {
+    background: linear-gradient(
+        rgba(0, 0, 0, 0.4), 
+        rgba(0, 0, 0, 0.4)
+    ), 
+    url(../images/Background.jpg);
+    position:absolute;
+    background-size: cover;
+    min-width: 98.9%;
+    min-height: 99%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.content {
+    background: linear-gradient(
+        rgba(0, 0, 0, 0.4), 
+        rgba(0, 0, 0, 0.4)
+    );
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    border-radius: 100px;
+    gap: 20px;
+    padding: 50px;
+    width: fit-content;
+    height: fit-content;
+}
+
+.content h1 {
+    font-size: 60px;
+    color: white;
+    margin: 10px;
+    font-family: 'PT Serif', serif;
+}
+
+.content h2 {
+    font-size: 40px;
+    color: white;
+    margin: 10px;
+    font-family: 'PT Serif', serif;
+}
+
+.content input {
+    width: 300px;
+    height: 40px;
+    border: none;
+    border-radius: 30px;
+    font-size: 30px;
+    padding-left: 10px;
+    font-family: 'PT Serif', serif;
+}
+
+.content button {
+    width: 300px;
+    height: 40px;
+    border: none;
+    border-radius: 30px;
+    font-size: 30px;
+    font-family: 'PT Serif', serif;
+    background-color: white;
+}
+
+.content button:hover {
+    background-color: rgb(207, 207, 207);
+    cursor: pointer;
+}
