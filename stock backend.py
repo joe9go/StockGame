@@ -74,9 +74,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             msg = json.loads(message)
         except:
             msg = message
-        print('POST', msg)
         
         post_type = self.headers.get('request')
+
+        if(post_type != "login" and post_type != "register"):
+            print('POST', msg)
 
         try:
             out = b''
